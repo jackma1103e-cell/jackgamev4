@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WBHBQC5VZV"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -12,7 +11,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Fusion Clicker: Performance Edition</title>
+    <title>Quantum Fusion Clicker: Final Edition</title>
     <style>
         body {
             background-color: #0f172a;
@@ -66,7 +65,7 @@
             cursor: pointer;
             font-weight: bold;
             color: #94a3b8;
-            transition: all 0.2s;
+            transition: all 0.2s ease-in-out;
         }
 
         .tab.active {
@@ -299,10 +298,11 @@
             document.getElementById('pane-upgrades').classList.toggle('active', type === 'upgrades');
         }
 
-        // PERFORMANCE: Re-architected updates to target specific elements using localized structural IDs
+        // PERFORMANCE: Target specific elements using localized structural IDs
         function updateUI() {
             elEnergyCount.textContent = format(energy);
             
+            // Update Buildings
             buildings.forEach((b, index) => {
                 const btn = document.getElementById('btn-b-' + index);
                 if (btn) {
@@ -313,6 +313,7 @@
                 }
             });
 
+            // Update Upgrades Logic
             let availableCount = 0;
             let highestOwned = Math.max(...buildings.map(b => b.count));
             
@@ -321,6 +322,7 @@
                 let visible = highestOwned >= u.req && !u.purchased;
 
                 if (card) {
+                    // Update state safely without DOM flashing
                     card.style.display = visible ? 'flex' : 'none';
                     card.classList.toggle('disabled', energy < u.cost);
                     if (visible && energy >= u.cost) availableCount++;
@@ -332,9 +334,22 @@
         function buyBuilding(index) {
             const b = buildings[index];
             const cost = getBuildCost(b);
-            if (energy >= cost) { energy -= cost; b.count++; recalculateCPS(); updateUI(); }
+            if (energy >= cost) { 
+                energy -= cost; 
+                b.count++; 
+                recalculateCPS(); 
+                
+                // If this purchase unlocked a new upgrade tier, silently rebuild the list
+                let highestOwned = Math.max(...buildings.map(b => b.count));
+                if (b.count === highestOwned) {
+                    rebuildUpgradeDOM();
+                }
+                
+                updateUI(); 
+            }
         }
 
+        // BUG FIX: Instant re-render protocol applied
         function buyUpgrade(index) {
             const u = upgrades[index];
             if (energy >= u.cost && !u.purchased) {
@@ -342,8 +357,8 @@
                 u.purchased = true;
                 if (u.effectType === "click") clickPower += u.value;
                 recalculateCPS();
-                updateUI();
-                rebuildUpgradeDOM();
+                rebuildUpgradeDOM(); 
+                updateUI();          
             }
         }
 
@@ -414,6 +429,10 @@
                 div.id = 'btn-u-' + index;
                 div.onclick = () => buyUpgrade(index);
                 
+                // PERFORMANCE FIX: Set display to 'none' during generation so they don't flash on screen
+                let visible = highestOwned >= u.req && !u.purchased;
+                div.style.display = visible ? 'flex' : 'none';
+                
                 let effectDesc = u.effectType === 'click' ? `+${format(u.value)} Click Power` : `+${Math.round((u.value - 1) * 100)}% Global Production`;
                 
                 div.innerHTML = `
@@ -476,7 +495,7 @@
         // Override Console Controls
         function cheatEnergy() { energy += 50000000; updateUI(); }
         function cheatClick() { clickPower += 5000; updateUI(); }
-        function cheatWin() { buildings.forEach(b => b.count += 50); recalculateCPS(); updateUI(); }
+        function cheatWin() { buildings.forEach(b => b.count += 50); recalculateCPS(); rebuildUpgradeDOM(); updateUI(); }
 
         let cheatCode = "diesel";
         let inputBuffer = "";
