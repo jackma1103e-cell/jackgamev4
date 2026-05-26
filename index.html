@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WBHBQC5VZV"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -11,7 +12,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Fusion Clicker: Legacy Edition</title>
+    <title>Quantum Fusion Clicker: Performance Edition</title>
     <style>
         body {
             background-color: #0f172a;
@@ -246,14 +247,14 @@
 
         // Core Infrastructure
         const buildings = [
-            { id: 1, name: "Auto-Cursor", icon: "👆", baseCost: 15, baseCps: 1, count: 0 },
-            { id: 2, name: "Solar Array", icon: "☀️", baseCost: 100, baseCps: 2, count: 0 },
+            { id: 1, name: "Auto-Cursor", icon: "👆", baseCost: 15, baseCps: 0.1, count: 0 },
+            { id: 2, name: "Solar Array", icon: "☀️", baseCost: 100, baseCps: 1, count: 0 },
             { id: 3, name: "Energy Farm", icon: "🌱", baseCost: 1100, baseCps: 8, count: 0 },
             { id: 4, name: "Plasma Factory", icon: "🏭", baseCost: 12000, baseCps: 47, count: 0 },
             { id: 5, name: "Quantum Mine", icon: "⛏️", baseCost: 130000, baseCps: 260, count: 0 }
         ];
 
-        // Hand-Crafted Unique Upgrades List (Completely distinct names and custom math values)
+        // Unique Upgrades Catalog
         const upgrades = [
             { id: 1, name: "Reinforced Thimbles", icon: "👍", cost: 150, effectType: "click", value: 1, req: 0, purchased: false },
             { id: 2, name: "Copper Wiring", icon: "⚡", cost: 400, effectType: "cps", value: 1.05, req: 0, purchased: false },
@@ -277,22 +278,18 @@
             { id: 20, name: "Infinite Mirror Matrix", icon: "🪞", cost: 420000000000, effectType: "cps", value: 1.40, req: 60, purchased: false }
         ];
 
+        // PERFORMANCE: Cached Reference Objects to hold DOM access targets
+        let elEnergyCount, elEpsCount, elUpgradesAvailCount, elSavePopup;
+
         function format(num) { return Math.floor(num).toLocaleString(); }
         function getBuildCost(b) { return Math.ceil(b.baseCost * Math.pow(1.15, b.count)); }
 
         function recalculateCPS() {
             let total = 0;
             buildings.forEach(b => { total += b.baseCps * b.count; });
-            
-            // Multiply automatic production sequentially based on custom items owned
-            upgrades.forEach(u => {
-                if (u.purchased && u.effectType === "cps") {
-                    total *= u.value; 
-                }
-            });
-            
+            upgrades.forEach(u => { if (u.purchased && u.effectType === "cps") total *= u.value; });
             cps = total;
-            document.getElementById('eps-count').textContent = format(cps);
+            elEpsCount.textContent = format(cps);
         }
 
         function switchTab(type) {
@@ -302,21 +299,25 @@
             document.getElementById('pane-upgrades').classList.toggle('active', type === 'upgrades');
         }
 
+        // PERFORMANCE: Re-architected updates to target specific elements using localized structural IDs
         function updateUI() {
-            document.getElementById('energy-count').textContent = format(energy);
+            elEnergyCount.textContent = format(energy);
             
             buildings.forEach((b, index) => {
                 const btn = document.getElementById('btn-b-' + index);
-                const cost = getBuildCost(b);
-                document.getElementById('cost-b-' + index).textContent = format(cost) + ' J';
-                document.getElementById('count-b-' + index).textContent = b.count > 0 ? b.count : '';
-                btn.classList.toggle('disabled', energy < cost);
+                if (btn) {
+                    const cost = getBuildCost(b);
+                    document.getElementById('cost-b-' + index).textContent = format(cost) + ' J';
+                    document.getElementById('count-b-' + index).textContent = b.count > 0 ? b.count : '';
+                    btn.classList.toggle('disabled', energy < cost);
+                }
             });
 
             let availableCount = 0;
+            let highestOwned = Math.max(...buildings.map(b => b.count));
+            
             upgrades.forEach((u, index) => {
                 const card = document.getElementById('btn-u-' + index);
-                let highestOwned = Math.max(...buildings.map(b => b.count));
                 let visible = highestOwned >= u.req && !u.purchased;
 
                 if (card) {
@@ -325,7 +326,7 @@
                     if (visible && energy >= u.cost) availableCount++;
                 }
             });
-            document.getElementById('upg-avail').textContent = availableCount;
+            elUpgradesAvailCount.textContent = availableCount;
         }
 
         function buyBuilding(index) {
@@ -339,11 +340,7 @@
             if (energy >= u.cost && !u.purchased) {
                 energy -= u.cost;
                 u.purchased = true;
-                
-                if (u.effectType === "click") {
-                    clickPower += u.value;
-                }
-                
+                if (u.effectType === "click") clickPower += u.value;
                 recalculateCPS();
                 updateUI();
                 rebuildUpgradeDOM();
@@ -362,6 +359,12 @@
         }
 
         function initDOM() {
+            // Setup static layout caches
+            elEnergyCount = document.getElementById('energy-count');
+            elEpsCount = document.getElementById('eps-count');
+            elUpgradesAvailCount = document.getElementById('upg-avail');
+            elSavePopup = document.getElementById('save-popup');
+
             const bContainer = document.getElementById('pane-buildings');
             bContainer.innerHTML = "";
             buildings.forEach((b, index) => {
@@ -387,6 +390,24 @@
         function rebuildUpgradeDOM() {
             const uContainer = document.getElementById('pane-upgrades');
             uContainer.innerHTML = "";
+
+            let highestOwned = Math.max(...buildings.map(b => b.count));
+
+            // DYNAMIC SIGNAL HINT: Render instruction box if player requirements have not been unlocked yet
+            if (highestOwned < 2) {
+                const hintDiv = document.createElement('div');
+                hintDiv.style.backgroundColor = '#1e293b';
+                hintDiv.style.border = '2px dashed #38bdf8';
+                hintDiv.style.color = '#94a3b8';
+                hintDiv.style.padding = '0.8rem';
+                hintDiv.style.marginBottom = '1rem';
+                hintDiv.style.borderRadius = '0.5rem';
+                hintDiv.style.textAlign = 'center';
+                hintDiv.style.fontSize = '0.9rem';
+                hintDiv.innerHTML = `🔬 <strong>Quantum Signal Lost:</strong> Expand any infrastructure item to at least <strong>2 units</strong> to unlock deeper research blueprints...`;
+                uContainer.appendChild(hintDiv);
+            }
+
             upgrades.forEach((u, index) => {
                 const div = document.createElement('div');
                 div.className = 'card disabled';
@@ -407,7 +428,7 @@
             });
         }
 
-        // --- SECURE STATE CACHING ENGINES ---
+        // --- LOCAL STORAGE ENGINES ---
         function saveGame() {
             const saveState = {
                 energy: energy,
@@ -416,9 +437,8 @@
                 purchasedUpgrades: upgrades.map(u => u.purchased)
             };
             localStorage.setItem('quantum_fusion_legacy_save', JSON.stringify(saveState));
-            const popup = document.getElementById('save-popup');
-            popup.style.opacity = "1";
-            setTimeout(() => { popup.style.opacity = "0"; }, 1200);
+            elSavePopup.style.opacity = "1";
+            setTimeout(() => { elSavePopup.style.opacity = "0"; }, 1200);
         }
 
         function loadGame() {
@@ -427,8 +447,6 @@
                 try {
                     const saveState = JSON.parse(rawData);
                     energy = saveState.energy || 0;
-                    
-                    // Reconstruct base click tracking cleanly
                     clickPower = 1; 
                     
                     if (saveState.counts) {
@@ -446,7 +464,7 @@
                             }
                         }
                     }
-                } catch (err) { console.error("Save state error", err); }
+                } catch (err) { console.error("Save system load mismatch error", err); }
             }
         }
 
@@ -455,7 +473,7 @@
             location.reload();
         }
 
-        // Developer Tool Handlers
+        // Override Console Controls
         function cheatEnergy() { energy += 50000000; updateUI(); }
         function cheatClick() { clickPower += 5000; updateUI(); }
         function cheatWin() { buildings.forEach(b => b.count += 50); recalculateCPS(); updateUI(); }
@@ -490,10 +508,11 @@
             updateUI();
         });
 
+        // Running Loop Clocks
         setInterval(() => { if (cps > 0) { energy += (cps / 10); updateUI(); } }, 100);
         setInterval(() => { saveGame(); }, 5000);
 
-        // Bootstrap load execution
+        // Initialization Pipeline
         loadGame();
         initDOM();
         recalculateCPS();
