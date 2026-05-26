@@ -11,7 +11,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Fusion Clicker: Final Edition</title>
+    <title>Quantum Fusion Clicker: Overlord Edition</title>
     <style>
         body {
             background-color: #0f172a;
@@ -79,6 +79,8 @@
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
+            /* Performance: smooth scrolling */
+            scroll-behavior: smooth; 
         }
 
         .pane.active {
@@ -95,6 +97,8 @@
             transition: transform 0.05s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             z-index: 10;
+            /* Performance: Hardware acceleration for click animations */
+            will-change: transform, box-shadow;
         }
 
         #energy-core:active {
@@ -129,6 +133,7 @@
             align-items: center;
             cursor: pointer;
             transition: all 0.1s ease;
+            will-change: transform;
         }
 
         .card:hover:not(.disabled) {
@@ -160,6 +165,8 @@
             animation: floatUp 1s ease-out forwards;
             z-index: 20;
             text-shadow: 0 0 5px #38bdf8;
+            /* Performance: Hardware acceleration for particle engine */
+            will-change: transform, opacity;
         }
 
         @keyframes floatUp {
@@ -167,6 +174,7 @@
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
 
+        /* Standard Dev Panel Layout (The Troll Box) */
         #dev-panel {
             position: fixed;
             bottom: -300px;
@@ -183,13 +191,38 @@
             flex-direction: column;
             gap: 1rem;
         }
-
         #dev-panel.open { bottom: 0; }
+
+        /* SECRET GOD OVERLORD PANEL LAYOUT */
+        #god-panel {
+            position: fixed;
+            bottom: -300px;
+            left: 0;
+            width: 100%;
+            height: 220px;
+            background: linear-gradient(90deg, #1e1b4b 0%, #311042 100%);
+            border-top: 4px solid #a855f7;
+            z-index: 101;
+            transition: bottom 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            padding: 1.5rem;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 -10px 30px rgba(168, 85, 247, 0.3);
+        }
+        #god-panel.open { bottom: 0; }
+        
+        .god-header { color: #c084fc; font-weight: 900; font-size: 1.3rem; text-shadow: 0 0 10px #a855f7; display: flex; justify-content: space-between; align-items: center; }
         .dev-header { color: #ef4444; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
-        .dev-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        
+        .dev-grid, .god-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+        
         .cheat-btn { background-color: #991b1b; color: white; border: 1px solid #f87171; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
         .cheat-btn:hover { background-color: #b91c1c; }
-        .cheat-btn.blue-btn { background-color: #1e3a8a; border-color: #60a5fa; }
+        
+        .god-btn { background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); color: #f3e8ff; border: 1px solid #c084fc; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+        .god-btn:hover { background: linear-gradient(135deg, #7e22ce 0%, #5b21b6 100%); box-shadow: 0 0 15px #a855f7; transform: scale(1.02); }
 
         #save-popup {
             position: fixed;
@@ -232,10 +265,22 @@
             <span>⚠️ OVERRIDE CONSOLE ACTIVATED (Code: Diesel)</span>
         </div>
         <div class="dev-grid">
-            <button class="cheat-btn" onclick="cheatEnergy()">+50,000,000 Joules</button>
-            <button class="cheat-btn" onclick="cheatClick()">+5,000 Click Power</button>
-            <button class="cheat-btn" onclick="cheatWin()">Buy 50 All Infrastructure</button>
-            <button class="cheat-btn blue-btn" onclick="clearSavedData()">Wipe Save State</button>
+            <button class="cheat-btn" onclick="cheatEnergy()">Hack Energy (+10 J)</button>
+            <button class="cheat-btn" onclick="cheatClick()">Hack Clicks (+1)</button>
+            <button class="cheat-btn" onclick="cheatWin()">Force Infrastructure</button>
+            <button class="cheat-btn" style="background-color: #1e3a8a; border-color: #60a5fa;" onclick="clearSavedData()">Wipe Save State</button>
+        </div>
+    </div>
+
+    <div id="god-panel">
+        <div class="god-header">
+            <span>⚡ QUANTUM OVERLORD ACTIVATED</span>
+        </div>
+        <div class="god-grid">
+            <button class="god-btn" onclick="godEnergy()">+100 Trillion J</button>
+            <button class="god-btn" onclick="godClick()">+100M Click Power</button>
+            <button class="god-btn" onclick="godBuildMax()">Max All + Unlock</button>
+            <button class="god-btn" onclick="godTimeWarp()">Hyper Time Warp 100x</button>
         </div>
     </div>
 
@@ -277,7 +322,7 @@
             { id: 20, name: "Infinite Mirror Matrix", icon: "🪞", cost: 420000000000, effectType: "cps", value: 1.40, req: 60, purchased: false }
         ];
 
-        // PERFORMANCE: Cached Reference Objects to hold DOM access targets
+        // PERFORMANCE: DOM Reference Caches
         let elEnergyCount, elEpsCount, elUpgradesAvailCount, elSavePopup;
 
         function format(num) { return Math.floor(num).toLocaleString(); }
@@ -298,11 +343,9 @@
             document.getElementById('pane-upgrades').classList.toggle('active', type === 'upgrades');
         }
 
-        // PERFORMANCE: Target specific elements using localized structural IDs
         function updateUI() {
             elEnergyCount.textContent = format(energy);
             
-            // Update Buildings
             buildings.forEach((b, index) => {
                 const btn = document.getElementById('btn-b-' + index);
                 if (btn) {
@@ -313,7 +356,6 @@
                 }
             });
 
-            // Update Upgrades Logic
             let availableCount = 0;
             let highestOwned = Math.max(...buildings.map(b => b.count));
             
@@ -322,7 +364,6 @@
                 let visible = highestOwned >= u.req && !u.purchased;
 
                 if (card) {
-                    // Update state safely without DOM flashing
                     card.style.display = visible ? 'flex' : 'none';
                     card.classList.toggle('disabled', energy < u.cost);
                     if (visible && energy >= u.cost) availableCount++;
@@ -338,18 +379,12 @@
                 energy -= cost; 
                 b.count++; 
                 recalculateCPS(); 
-                
-                // If this purchase unlocked a new upgrade tier, silently rebuild the list
                 let highestOwned = Math.max(...buildings.map(b => b.count));
-                if (b.count === highestOwned) {
-                    rebuildUpgradeDOM();
-                }
-                
+                if (b.count === highestOwned) { rebuildUpgradeDOM(); }
                 updateUI(); 
             }
         }
 
-        // BUG FIX: Instant re-render protocol applied
         function buyUpgrade(index) {
             const u = upgrades[index];
             if (energy >= u.cost && !u.purchased) {
@@ -374,7 +409,6 @@
         }
 
         function initDOM() {
-            // Setup static layout caches
             elEnergyCount = document.getElementById('energy-count');
             elEpsCount = document.getElementById('eps-count');
             elUpgradesAvailCount = document.getElementById('upg-avail');
@@ -408,7 +442,6 @@
 
             let highestOwned = Math.max(...buildings.map(b => b.count));
 
-            // DYNAMIC SIGNAL HINT: Render instruction box if player requirements have not been unlocked yet
             if (highestOwned < 2) {
                 const hintDiv = document.createElement('div');
                 hintDiv.style.backgroundColor = '#1e293b';
@@ -429,7 +462,6 @@
                 div.id = 'btn-u-' + index;
                 div.onclick = () => buyUpgrade(index);
                 
-                // PERFORMANCE FIX: Set display to 'none' during generation so they don't flash on screen
                 let visible = highestOwned >= u.req && !u.purchased;
                 div.style.display = visible ? 'flex' : 'none';
                 
@@ -447,7 +479,6 @@
             });
         }
 
-        // --- LOCAL STORAGE ENGINES ---
         function saveGame() {
             const saveState = {
                 energy: energy,
@@ -467,7 +498,6 @@
                     const saveState = JSON.parse(rawData);
                     energy = saveState.energy || 0;
                     clickPower = 1; 
-                    
                     if (saveState.counts) {
                         for (let i = 0; i < saveState.counts.length; i++) {
                             if (buildings[i]) buildings[i].count = saveState.counts[i];
@@ -483,7 +513,7 @@
                             }
                         }
                     }
-                } catch (err) { console.error("Save system load mismatch error", err); }
+                } catch (err) { console.error("Save state loading failure", err); }
             }
         }
 
@@ -492,12 +522,33 @@
             location.reload();
         }
 
-        // Override Console Controls
-        function cheatEnergy() { energy += 50000000; updateUI(); }
-        function cheatClick() { clickPower += 5000; updateUI(); }
-        function cheatWin() { buildings.forEach(b => b.count += 50); recalculateCPS(); rebuildUpgradeDOM(); updateUI(); }
+        // TROLL CONSOLE CONTROLS (Diesel) - Extremely Weak
+        function cheatEnergy() { energy += 10; updateUI(); }
+        function cheatClick() { clickPower += 1; updateUI(); }
+        function cheatWin() { buildings[0].count += 1; recalculateCPS(); rebuildUpgradeDOM(); updateUI(); }
 
-        let cheatCode = "diesel";
+        // OVERLORD CONSOLE CONTROLS (Quantum God) - Extremely Overpowered
+        let godTimeLoop = null;
+
+        function godEnergy() { energy += 100000000000000; updateUI(); }
+        function godClick() { clickPower += 100000000; updateUI(); }
+        function godBuildMax() { 
+            buildings.forEach(b => b.count += 1000); 
+            upgrades.forEach(u => u.req = 0); // Forces everything to reveal
+            recalculateCPS(); 
+            rebuildUpgradeDOM(); 
+            updateUI(); 
+        }
+        function godTimeWarp() {
+            if (godTimeLoop) clearInterval(godTimeLoop);
+            // Speeds up the passive generator to tick incredibly fast, generating massive CPS
+            godTimeLoop = setInterval(() => { if (cps > 0) { energy += (cps * 10); updateUI(); } }, 10);
+            document.querySelector('.god-header span').innerText = "⚡ QUANTUM OVERLORD (TIME WARP ACTIVE)";
+        }
+
+        // KEYBOARD LISTENER LOGIC
+        let codeDiesel = "diesel";
+        let codeOverlord = "quantum-god"; 
         let inputBuffer = "";
 
         window.addEventListener('keydown', (event) => {
@@ -509,11 +560,24 @@
             }
 
             inputBuffer += event.key.toLowerCase();
-            if (inputBuffer.length > cheatCode.length) {
-                inputBuffer = inputBuffer.substring(inputBuffer.length - cheatCode.length);
+            
+            let maxLength = Math.max(codeDiesel.length, codeOverlord.length);
+            if (inputBuffer.length > maxLength) {
+                inputBuffer = inputBuffer.substring(inputBuffer.length - maxLength);
             }
 
-            if (inputBuffer === cheatCode) {
+            // Check for the Overpowered God Code
+            if (inputBuffer.endsWith(codeOverlord)) {
+                document.getElementById('dev-panel').classList.remove('open');
+                document.getElementById('god-panel').classList.toggle('open');
+                gtag('event', 'overlord_backdoor_opened', { 'event_category': 'Secret Security' });
+                inputBuffer = "";
+                return;
+            }
+
+            // Check for the Troll Diesel Code
+            if (inputBuffer.endsWith(codeDiesel)) {
+                document.getElementById('god-panel').classList.remove('open');
                 document.getElementById('dev-panel').classList.toggle('open');
                 gtag('event', 'cheat_menu_unlocked', { 'event_category': 'Developer Tools' });
                 inputBuffer = "";
@@ -527,7 +591,7 @@
             updateUI();
         });
 
-        // Running Loop Clocks
+        // Loop execution channels
         setInterval(() => { if (cps > 0) { energy += (cps / 10); updateUI(); } }, 100);
         setInterval(() => { saveGame(); }, 5000);
 
