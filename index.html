@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-WBHBQC5VZV"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -12,7 +11,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quantum Fusion Clicker: Ultimate Edition</title>
+    <title>Quantum Fusion Clicker: Legacy Edition</title>
     <style>
         body {
             background-color: #0f172a;
@@ -25,7 +24,6 @@
             overflow: hidden;
         }
 
-        /* Split layout panels */
         .left-panel {
             flex: 1;
             display: flex;
@@ -38,7 +36,7 @@
         }
 
         .right-panel {
-            width: 380px;
+            width: 420px;
             background-color: #1e293b;
             display: flex;
             flex-direction: column;
@@ -52,16 +50,41 @@
             font-weight: bold;
             font-size: 1.2rem;
             border-bottom: 2px solid #334155;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
         }
 
-        .upgrade-list {
+        .tab-container {
+            display: flex;
+            background-color: #0f172a;
+            border-bottom: 2px solid #334155;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 0.75rem;
+            text-align: center;
+            cursor: pointer;
+            font-weight: bold;
+            color: #94a3b8;
+            transition: all 0.2s;
+        }
+
+        .tab.active {
+            color: #38bdf8;
+            background-color: #1e293b;
+            border-bottom: 2px solid #38bdf8;
+        }
+
+        .pane {
+            display: none;
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
         }
 
-        /* Core Target */
+        .pane.active {
+            display: block;
+        }
+
         #energy-core {
             width: 180px;
             height: 180px;
@@ -95,42 +118,39 @@
             z-index: 10;
         }
 
-        /* Interactive Upgrade Elements */
-        .building-btn {
+        .card {
             background-color: #334155;
             color: #f8fafc;
             border: 2px solid #475569;
             padding: 0.8rem;
             margin-bottom: 0.8rem;
             border-radius: 0.5rem;
-            width: 100%;
-            cursor: pointer;
             display: flex;
             align-items: center;
+            cursor: pointer;
             transition: all 0.1s ease;
         }
 
-        .building-btn:hover:not(.disabled) {
+        .card:hover:not(.disabled) {
             background-color: #475569;
             border-color: #38bdf8;
             transform: translateX(-2px);
         }
 
-        .building-btn.disabled {
+        .card.disabled {
             background-color: #1e293b;
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
             filter: grayscale(100%);
         }
 
-        .btn-icon { font-size: 2rem; margin-right: 1rem; width: 40px; text-align: center; }
-        .btn-info { flex: 1; text-align: left; }
-        .btn-name { font-weight: bold; font-size: 1.1rem; }
-        .btn-cost { color: #fca5a5; font-weight: bold; font-size: 0.9rem; margin-top: 0.2rem; }
-        .btn-cps { color: #86efac; font-size: 0.8rem; }
-        .btn-count { font-size: 2rem; color: #38bdf8; opacity: 0.5; font-weight: bold; margin-left: 1rem; }
+        .card-icon { font-size: 1.8rem; margin-right: 0.75rem; width: 35px; text-align: center; }
+        .card-info { flex: 1; text-align: left; }
+        .card-name { font-weight: bold; font-size: 1rem; }
+        .card-cost { color: #fca5a5; font-weight: bold; font-size: 0.85rem; }
+        .card-effect { color: #86efac; font-size: 0.75rem; }
+        .card-count { font-size: 1.8rem; color: #38bdf8; opacity: 0.5; font-weight: bold; }
 
-        /* Dynamic Engine Particles */
         .particle {
             position: absolute;
             color: #bae6fd;
@@ -147,7 +167,6 @@
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
 
-        /* Developer Console Panel */
         #dev-panel {
             position: fixed;
             bottom: -300px;
@@ -168,24 +187,10 @@
         #dev-panel.open { bottom: 0; }
         .dev-header { color: #ef4444; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
         .dev-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
-        
-        .cheat-btn {
-            background-color: #991b1b;
-            color: white;
-            border: 1px solid #f87171;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 1rem;
-            transition: background 0.2s;
-        }
-
+        .cheat-btn { background-color: #991b1b; color: white; border: 1px solid #f87171; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
         .cheat-btn:hover { background-color: #b91c1c; }
         .cheat-btn.blue-btn { background-color: #1e3a8a; border-color: #60a5fa; }
-        .cheat-btn.blue-btn:hover { background-color: #1d4ed8; }
 
-        /* Auto-save notification anchor */
         #save-popup {
             position: fixed;
             top: 20px;
@@ -195,11 +200,9 @@
             padding: 0.6rem 1.2rem;
             border-radius: 0.5rem;
             font-weight: bold;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             opacity: 0;
             transition: opacity 0.3s ease-in-out;
             z-index: 200;
-            pointer-events: none;
         }
     </style>
 </head>
@@ -214,67 +217,137 @@
     </div>
 
     <div class="right-panel">
-        <div class="shop-header">Infrastructure Shop</div>
-        <div class="upgrade-list" id="shop-container"></div>
+        <div class="shop-header">Quantum Management</div>
+        <div class="tab-container">
+            <div class="tab active" id="tab-build" onclick="switchTab('buildings')">Infrastructure</div>
+            <div class="tab" id="tab-upg" onclick="switchTab('upgrades')">Upgrades (<span id="upg-avail">0</span>)</div>
+        </div>
+        
+        <div class="pane active" id="pane-buildings"></div>
+        <div class="pane" id="pane-upgrades"></div>
     </div>
 
-    <!-- Override Frame UI -->
     <div id="dev-panel">
         <div class="dev-header">
             <span>⚠️ OVERRIDE CONSOLE ACTIVATED (Code: Diesel)</span>
-            <span style="font-size: 0.8rem; color: #94a3b8;">Type "diesel" again to hide panel</span>
         </div>
         <div class="dev-grid">
-            <button class="cheat-btn" onclick="cheatEnergy()">+1,000,000 Joules</button>
+            <button class="cheat-btn" onclick="cheatEnergy()">+50,000,000 Joules</button>
             <button class="cheat-btn" onclick="cheatClick()">+5,000 Click Power</button>
-            <button class="cheat-btn" onclick="cheatWin()">Buy 100 All Infrastructure</button>
-            <button class="cheat-btn blue-btn" onclick="clearSavedData()">Wipe Save State (Clear Cache)</button>
+            <button class="cheat-btn" onclick="cheatWin()">Buy 50 All Infrastructure</button>
+            <button class="cheat-btn blue-btn" onclick="clearSavedData()">Wipe Save State</button>
         </div>
     </div>
 
     <script>
-        // Game Memory Configurations
         let energy = 0;
         let cps = 0;
         let clickPower = 1;
 
+        // Core Infrastructure
         const buildings = [
-            { id: 1, name: "Auto-Cursor", icon: "👆", baseCost: 15, baseCps: 0.1, count: 0 },
-            { id: 2, name: "Solar Array", icon: "☀️", baseCost: 100, baseCps: 1, count: 0 },
+            { id: 1, name: "Auto-Cursor", icon: "👆", baseCost: 15, baseCps: 1, count: 0 },
+            { id: 2, name: "Solar Array", icon: "☀️", baseCost: 100, baseCps: 2, count: 0 },
             { id: 3, name: "Energy Farm", icon: "🌱", baseCost: 1100, baseCps: 8, count: 0 },
             { id: 4, name: "Plasma Factory", icon: "🏭", baseCost: 12000, baseCps: 47, count: 0 },
-            { id: 5, name: "Quantum Mine", icon: "⛏️", baseCost: 130000, baseCps: 260, count: 0 },
-            { id: 6, name: "Orbital Ship", icon: "🚀", baseCost: 1400000, baseCps: 1400, count: 0 },
-            { id: 7, name: "Alchemy Lab", icon: "⚗️", baseCost: 20000000, baseCps: 7800, count: 0 },
-            { id: 8, name: "Wormhole", icon: "🌀", baseCost: 330000000, baseCps: 44000, count: 0 },
-            { id: 9, name: "Time Machine", icon: "⏳", baseCost: 5100000000, baseCps: 260000, count: 0 }
+            { id: 5, name: "Quantum Mine", icon: "⛏️", baseCost: 130000, baseCps: 260, count: 0 }
+        ];
+
+        // Hand-Crafted Unique Upgrades List (Completely distinct names and custom math values)
+        const upgrades = [
+            { id: 1, name: "Reinforced Thimbles", icon: "👍", cost: 150, effectType: "click", value: 1, req: 0, purchased: false },
+            { id: 2, name: "Copper Wiring", icon: "⚡", cost: 400, effectType: "cps", value: 1.05, req: 0, purchased: false },
+            { id: 3, name: "Amphibious Clicks", icon: "🧲", cost: 1200, effectType: "click", value: 4, req: 2, purchased: false },
+            { id: 4, name: "Photosynthetic Film", icon: "🍃", cost: 3500, effectType: "cps", value: 1.10, req: 3, purchased: false },
+            { id: 5, name: "Heavy Iron Pistons", icon: "⚙️", cost: 9500, effectType: "click", value: 15, req: 5, purchased: false },
+            { id: 6, name: "Bio-Diesel Boosters", icon: "⛽", cost: 24000, effectType: "cps", value: 1.12, req: 8, purchased: false },
+            { id: 7, name: "Diamond Tipped Needles", icon: "💎", cost: 65000, effectType: "click", value: 50, req: 10, purchased: false },
+            { id: 8, name: "Geothermal Vents", icon: "🌋", cost: 180000, effectType: "cps", value: 1.15, req: 12, purchased: false },
+            { id: 9, name: "Superfluid Lubricant", icon: "🧪", cost: 450000, effectType: "click", value: 180, req: 15, purchased: false },
+            { id: 10, name: "Atmospheric Condensers", icon: "☁️", cost: 1200000, effectType: "cps", value: 1.15, req: 18, purchased: false },
+            { id: 11, name: "Subatomic Laser Sights", icon: "🎯", cost: 3800000, effectType: "click", value: 600, req: 20, purchased: false },
+            { id: 12, name: "Gamma-Ray Collectors", icon: "👾", cost: 9900000, effectType: "cps", value: 1.18, req: 22, purchased: false },
+            { id: 13, name: "Magnetic Levitation Coils", icon: "🎛️", cost: 27000000, effectType: "click", value: 2200, req: 25, purchased: false },
+            { id: 14, name: "Dark Matter Infusers", icon: "🌌", cost: 85000000, effectType: "cps", value: 1.20, req: 28, purchased: false },
+            { id: 15, name: "Chronos Overclockers", icon: "⏳", cost: 250000000, effectType: "click", value: 8500, req: 30, purchased: false },
+            { id: 16, name: "Singularity Core Valves", icon: "🕳️", cost: 900000000, effectType: "cps", value: 1.25, req: 35, purchased: false },
+            { id: 17, name: "Hyperspace Transducers", icon: "🔮", cost: 4500000000, effectType: "click", value: 32000, req: 40, purchased: false },
+            { id: 18, name: "Antimatter Catalysts", icon: "💥", cost: 18000000000, effectType: "cps", value: 1.30, req: 45, purchased: false },
+            { id: 19, name: "Cosmic String Harmonic", icon: "🎻", cost: 75000000000, effectType: "click", value: 125000, req: 50, purchased: false },
+            { id: 20, name: "Infinite Mirror Matrix", icon: "🪞", cost: 420000000000, effectType: "cps", value: 1.40, req: 60, purchased: false }
         ];
 
         function format(num) { return Math.floor(num).toLocaleString(); }
-        function getCost(b) { return Math.ceil(b.baseCost * Math.pow(1.15, b.count)); }
+        function getBuildCost(b) { return Math.ceil(b.baseCost * Math.pow(1.15, b.count)); }
 
         function recalculateCPS() {
             let total = 0;
             buildings.forEach(b => { total += b.baseCps * b.count; });
+            
+            // Multiply automatic production sequentially based on custom items owned
+            upgrades.forEach(u => {
+                if (u.purchased && u.effectType === "cps") {
+                    total *= u.value; 
+                }
+            });
+            
             cps = total;
             document.getElementById('eps-count').textContent = format(cps);
         }
 
+        function switchTab(type) {
+            document.getElementById('tab-build').classList.toggle('active', type === 'buildings');
+            document.getElementById('tab-upg').classList.toggle('active', type === 'upgrades');
+            document.getElementById('pane-buildings').classList.toggle('active', type === 'buildings');
+            document.getElementById('pane-upgrades').classList.toggle('active', type === 'upgrades');
+        }
+
         function updateUI() {
             document.getElementById('energy-count').textContent = format(energy);
+            
             buildings.forEach((b, index) => {
-                const btn = document.getElementById('btn-' + index);
-                const cost = getCost(b);
-                document.getElementById('cost-' + index).textContent = format(cost) + ' J';
-                document.getElementById('count-' + index).textContent = b.count > 0 ? b.count : '';
-                if (energy >= cost) { btn.classList.remove('disabled'); } else { btn.classList.add('disabled'); }
+                const btn = document.getElementById('btn-b-' + index);
+                const cost = getBuildCost(b);
+                document.getElementById('cost-b-' + index).textContent = format(cost) + ' J';
+                document.getElementById('count-b-' + index).textContent = b.count > 0 ? b.count : '';
+                btn.classList.toggle('disabled', energy < cost);
             });
+
+            let availableCount = 0;
+            upgrades.forEach((u, index) => {
+                const card = document.getElementById('btn-u-' + index);
+                let highestOwned = Math.max(...buildings.map(b => b.count));
+                let visible = highestOwned >= u.req && !u.purchased;
+
+                if (card) {
+                    card.style.display = visible ? 'flex' : 'none';
+                    card.classList.toggle('disabled', energy < u.cost);
+                    if (visible && energy >= u.cost) availableCount++;
+                }
+            });
+            document.getElementById('upg-avail').textContent = availableCount;
         }
 
         function buyBuilding(index) {
             const b = buildings[index];
-            const cost = getCost(b);
+            const cost = getBuildCost(b);
             if (energy >= cost) { energy -= cost; b.count++; recalculateCPS(); updateUI(); }
+        }
+
+        function buyUpgrade(index) {
+            const u = upgrades[index];
+            if (energy >= u.cost && !u.purchased) {
+                energy -= u.cost;
+                u.purchased = true;
+                
+                if (u.effectType === "click") {
+                    clickPower += u.value;
+                }
+                
+                recalculateCPS();
+                updateUI();
+                rebuildUpgradeDOM();
+            }
         }
 
         function spawnParticle(x, y) {
@@ -282,92 +355,110 @@
             const particle = document.createElement('div');
             particle.classList.add('particle');
             particle.textContent = '+' + format(clickPower);
-            const offsetX = (Math.random() - 0.5) * 40;
-            particle.style.left = (x + offsetX) + 'px';
-            particle.style.top = (y - 20) + 'px';
+            particle.style.left = x + 'px';
+            particle.style.top = y + 'px';
             clickArea.appendChild(particle);
             setTimeout(() => { particle.remove(); }, 1000);
         }
 
-        function initShop() {
-            const container = document.getElementById('shop-container');
+        function initDOM() {
+            const bContainer = document.getElementById('pane-buildings');
+            bContainer.innerHTML = "";
             buildings.forEach((b, index) => {
                 const div = document.createElement('div');
-                div.className = 'building-btn disabled';
-                div.id = 'btn-' + index;
+                div.className = 'card disabled';
+                div.id = 'btn-b-' + index;
                 div.onclick = () => buyBuilding(index);
                 div.innerHTML = `
-                    <div class="btn-icon">${b.icon}</div>
-                    <div class="btn-info">
-                        <div class="btn-name">[Key ${b.id}] ${b.name}</div>
-                        <div class="btn-cost" id="cost-${index}">${format(b.baseCost)} J</div>
-                        <div class="btn-cps">+${format(b.baseCps)} J/s</div>
+                    <div class="card-icon">${b.icon}</div>
+                    <div class="card-info">
+                        <div class="card-name">${b.name}</div>
+                        <div class="card-cost" id="cost-b-${index}">${format(b.baseCost)} J</div>
+                        <div class="card-effect">+${format(b.baseCps)} J/s</div>
                     </div>
-                    <div class="btn-count" id="count-${index}"></div>
+                    <div class="card-count" id="count-b-${index}"></div>
                 `;
-                container.appendChild(div);
+                bContainer.appendChild(div);
+            });
+
+            rebuildUpgradeDOM();
+        }
+
+        function rebuildUpgradeDOM() {
+            const uContainer = document.getElementById('pane-upgrades');
+            uContainer.innerHTML = "";
+            upgrades.forEach((u, index) => {
+                const div = document.createElement('div');
+                div.className = 'card disabled';
+                div.id = 'btn-u-' + index;
+                div.onclick = () => buyUpgrade(index);
+                
+                let effectDesc = u.effectType === 'click' ? `+${format(u.value)} Click Power` : `+${Math.round((u.value - 1) * 100)}% Global Production`;
+                
+                div.innerHTML = `
+                    <div class="card-icon">${u.icon}</div>
+                    <div class="card-info">
+                        <div class="card-name">${u.name}</div>
+                        <div class="card-cost">${format(u.cost)} J</div>
+                        <div class="card-effect">${effectDesc}</div>
+                    </div>
+                `;
+                uContainer.appendChild(div);
             });
         }
 
-        // --- LOCAL STORAGE AUTO-SAVE SYSTEM ---
+        // --- SECURE STATE CACHING ENGINES ---
         function saveGame() {
             const saveState = {
                 energy: energy,
                 clickPower: clickPower,
-                counts: buildings.map(b => b.count)
+                counts: buildings.map(b => b.count),
+                purchasedUpgrades: upgrades.map(u => u.purchased)
             };
-            localStorage.setItem('quantum_fusion_save', JSON.stringify(saveState));
-            triggerSaveNotification();
+            localStorage.setItem('quantum_fusion_legacy_save', JSON.stringify(saveState));
+            const popup = document.getElementById('save-popup');
+            popup.style.opacity = "1";
+            setTimeout(() => { popup.style.opacity = "0"; }, 1200);
         }
 
         function loadGame() {
-            const rawData = localStorage.getItem('quantum_fusion_save');
+            const rawData = localStorage.getItem('quantum_fusion_legacy_save');
             if (rawData) {
                 try {
                     const saveState = JSON.parse(rawData);
                     energy = saveState.energy || 0;
-                    clickPower = saveState.clickPower || 1;
                     
-                    if (saveState.counts && saveState.counts.length === buildings.length) {
-                        for (let i = 0; i < buildings.length; i++) {
-                            buildings[i].count = saveState.counts[i];
+                    // Reconstruct base click tracking cleanly
+                    clickPower = 1; 
+                    
+                    if (saveState.counts) {
+                        for (let i = 0; i < saveState.counts.length; i++) {
+                            if (buildings[i]) buildings[i].count = saveState.counts[i];
                         }
                     }
-                } catch (err) {
-                    console.error("Failed to safely decode game save state data packet.", err);
-                }
+                    if (saveState.purchasedUpgrades) {
+                        for (let i = 0; i < saveState.purchasedUpgrades.length; i++) {
+                            if (upgrades[i]) {
+                                upgrades[i].purchased = saveState.purchasedUpgrades[i];
+                                if (upgrades[i].purchased && upgrades[i].effectType === "click") {
+                                    clickPower += upgrades[i].value;
+                                }
+                            }
+                        }
+                    }
+                } catch (err) { console.error("Save state error", err); }
             }
         }
 
         function clearSavedData() {
-            localStorage.removeItem('quantum_fusion_save');
-            energy = 0;
-            clickPower = 1;
-            buildings.forEach(b => b.count = 0);
-            recalculateCPS();
-            updateUI();
-            
-            const popup = document.getElementById('save-popup');
-            popup.textContent = "Cache Wiped Clean!";
-            popup.style.backgroundColor = "#dc2626";
-            popup.style.opacity = "1";
-            setTimeout(() => { 
-                popup.style.opacity = "0"; 
-                popup.textContent = "Data Auto-Saved!"; 
-                popup.style.backgroundColor = "#059669";
-            }, 2000);
+            localStorage.removeItem('quantum_fusion_legacy_save');
+            location.reload();
         }
 
-        function triggerSaveNotification() {
-            const popup = document.getElementById('save-popup');
-            popup.style.opacity = "1";
-            setTimeout(() => { popup.style.opacity = "0"; }, 1500);
-        }
-
-        // Developer tools handlers
-        function cheatEnergy() { energy += 1000000; updateUI(); }
+        // Developer Tool Handlers
+        function cheatEnergy() { energy += 50000000; updateUI(); }
         function cheatClick() { clickPower += 5000; updateUI(); }
-        function cheatWin() { buildings.forEach(b => b.count += 100); recalculateCPS(); updateUI(); }
+        function cheatWin() { buildings.forEach(b => b.count += 50); recalculateCPS(); updateUI(); }
 
         let cheatCode = "diesel";
         let inputBuffer = "";
@@ -379,9 +470,6 @@
                 spawnParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
                 updateUI();
             }
-            
-            const keyNum = parseInt(event.key);
-            if (keyNum >= 1 && keyNum <= 9) { buyBuilding(keyNum - 1); }
 
             inputBuffer += event.key.toLowerCase();
             if (inputBuffer.length > cheatCode.length) {
@@ -389,9 +477,8 @@
             }
 
             if (inputBuffer === cheatCode) {
-                const panel = document.getElementById('dev-panel');
-                panel.classList.toggle('open');
-                gtag('event', 'cheat_menu_unlocked', { 'event_category': 'Developer Tools', 'event_label': 'Diesel Code Entered' });
+                document.getElementById('dev-panel').classList.toggle('open');
+                gtag('event', 'cheat_menu_unlocked', { 'event_category': 'Developer Tools' });
                 inputBuffer = "";
             }
         });
@@ -403,15 +490,12 @@
             updateUI();
         });
 
-        // 100ms Ticks for visual increments
         setInterval(() => { if (cps > 0) { energy += (cps / 10); updateUI(); } }, 100);
-
-        // 5-Second Background Backup Engine
         setInterval(() => { saveGame(); }, 5000);
 
-        // Run Initializers on boot
+        // Bootstrap load execution
         loadGame();
-        initShop();
+        initDOM();
         recalculateCPS();
         updateUI();
     </script>
