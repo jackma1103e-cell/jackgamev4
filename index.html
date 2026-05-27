@@ -12,6 +12,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quantum Fusion Clicker: Overlord Edition</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script>
+      // Your Database Connection Config
+      const firebaseConfig = {
+        databaseURL: "https://jackgamev4-default-rtdb.firebaseio.com"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const database = firebase.database();
+    </script>
+
     <style>
         body {
             background-color: #0f172a;
@@ -79,7 +91,6 @@
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
-            /* Performance: smooth scrolling */
             scroll-behavior: smooth; 
         }
 
@@ -97,7 +108,6 @@
             transition: transform 0.05s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             z-index: 10;
-            /* Performance: Hardware acceleration for click animations */
             will-change: transform, box-shadow;
         }
 
@@ -165,7 +175,6 @@
             animation: floatUp 1s ease-out forwards;
             z-index: 20;
             text-shadow: 0 0 5px #38bdf8;
-            /* Performance: Hardware acceleration for particle engine */
             will-change: transform, opacity;
         }
 
@@ -174,7 +183,7 @@
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
 
-        /* Standard Dev Panel Layout (The Troll Box) */
+        /* Standard Troll Panel Layout */
         #dev-panel {
             position: fixed;
             bottom: -300px;
@@ -196,10 +205,10 @@
         /* SECRET GOD OVERLORD PANEL LAYOUT */
         #god-panel {
             position: fixed;
-            bottom: -300px;
+            bottom: -350px;
             left: 0;
             width: 100%;
-            height: 220px;
+            height: 280px; 
             background: linear-gradient(90deg, #1e1b4b 0%, #311042 100%);
             border-top: 4px solid #a855f7;
             z-index: 101;
@@ -224,6 +233,13 @@
         .god-btn { background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); color: #f3e8ff; border: 1px solid #c084fc; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
         .god-btn:hover { background: linear-gradient(135deg, #7e22ce 0%, #5b21b6 100%); box-shadow: 0 0 15px #a855f7; transform: scale(1.02); }
 
+        /* Network Data Interceptor UI */
+        .network-bar { background: rgba(0, 0, 0, 0.4); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid #c084fc; display: flex; gap: 1rem; align-items: center; }
+        .network-bar label { font-weight: bold; color: #e9d5ff; font-size: 0.9rem; }
+        .network-bar select { background: #0f172a; color: #f3e8ff; border: 1px solid #a855f7; padding: 0.4rem; border-radius: 0.25rem; flex: 1; outline: none; }
+        .nuke-btn { background: #dc2626; color: white; border: none; padding: 0.4rem 1.2rem; font-weight: bold; border-radius: 0.25rem; cursor: pointer; text-transform: uppercase; font-size: 0.85rem; box-shadow: 0 0 10px rgba(220, 38, 38, 0.4); }
+        .nuke-btn:hover { background: #b91c1c; box-shadow: 0 0 15px #ef4444; }
+
         #save-popup {
             position: fixed;
             top: 20px;
@@ -241,7 +257,7 @@
 </head>
 <body>
 
-    <div id="save-popup">Data Auto-Saved!</div>
+    <div id="save-popup">Cloud Synchronized!</div>
 
     <div class="left-panel" id="click-area">
         <div class="score-display"><span id="energy-count">0</span> J</div>
@@ -282,14 +298,30 @@
             <button class="god-btn" onclick="godBuildMax()">Max All + Unlock</button>
             <button class="god-btn" onclick="godTimeWarp()">Hyper Time Warp 100x</button>
         </div>
+        <div class="network-bar">
+            <label>📡 NETWORK TARGET INTERCEPTOR:</label>
+            <select id="player-target-list">
+                <option value="">Scanning for active target vectors...</option>
+            </select>
+            <button class="nuke-btn" onclick="remoteNukeTarget()">Remote Wipe Target</button>
+        </div>
     </div>
 
     <script>
         let energy = 0;
         let cps = 0;
         let clickPower = 1;
+        let isCloudSyncing = false; 
 
-        // Core Infrastructure
+        let playerId = localStorage.getItem('quantum_player_id');
+        if (!playerId) {
+            playerId = "User_" + Math.floor(1000 + Math.random() * 9000);
+            localStorage.setItem('quantum_player_id', playerId);
+        }
+
+        const coreBtn = document.getElementById('energy-core');
+        let elEnergyCount, elEpsCount, elUpgradesAvailCount, elSavePopup;
+
         const buildings = [
             { id: 1, name: "Auto-Cursor", icon: "👆", baseCost: 15, baseCps: 0.1, count: 0 },
             { id: 2, name: "Solar Array", icon: "☀️", baseCost: 100, baseCps: 1, count: 0 },
@@ -298,7 +330,6 @@
             { id: 5, name: "Quantum Mine", icon: "⛏️", baseCost: 130000, baseCps: 260, count: 0 }
         ];
 
-        // Unique Upgrades Catalog
         const upgrades = [
             { id: 1, name: "Reinforced Thimbles", icon: "👍", cost: 150, effectType: "click", value: 1, req: 0, purchased: false },
             { id: 2, name: "Copper Wiring", icon: "⚡", cost: 400, effectType: "cps", value: 1.05, req: 0, purchased: false },
@@ -322,9 +353,6 @@
             { id: 20, name: "Infinite Mirror Matrix", icon: "🪞", cost: 420000000000, effectType: "cps", value: 1.40, req: 60, purchased: false }
         ];
 
-        // PERFORMANCE: DOM Reference Caches
-        let elEnergyCount, elEpsCount, elUpgradesAvailCount, elSavePopup;
-
         function format(num) { return Math.floor(num).toLocaleString(); }
         function getBuildCost(b) { return Math.ceil(b.baseCost * Math.pow(1.15, b.count)); }
 
@@ -333,7 +361,7 @@
             buildings.forEach(b => { total += b.baseCps * b.count; });
             upgrades.forEach(u => { if (u.purchased && u.effectType === "cps") total *= u.value; });
             cps = total;
-            elEpsCount.textContent = format(cps);
+            if(elEpsCount) elEpsCount.textContent = format(cps);
         }
 
         function switchTab(type) {
@@ -344,6 +372,7 @@
         }
 
         function updateUI() {
+            if(!elEnergyCount) return;
             elEnergyCount.textContent = format(energy);
             
             buildings.forEach((b, index) => {
@@ -357,7 +386,7 @@
             });
 
             let availableCount = 0;
-            let highestOwned = Math.max(...buildings.map(b => b.count));
+            let highestOwned = buildings.length > 0 ? Math.max(...buildings.map(b => b.count)) : 0;
             
             upgrades.forEach((u, index) => {
                 const card = document.getElementById('btn-u-' + index);
@@ -440,7 +469,7 @@
             const uContainer = document.getElementById('pane-upgrades');
             uContainer.innerHTML = "";
 
-            let highestOwned = Math.max(...buildings.map(b => b.count));
+            let highestOwned = buildings.length > 0 ? Math.max(...buildings.map(b => b.count)) : 0;
 
             if (highestOwned < 2) {
                 const hintDiv = document.createElement('div');
@@ -457,17 +486,17 @@
             }
 
             upgrades.forEach((u, index) => {
-                const div = document.createElement('div');
-                div.className = 'card disabled';
-                div.id = 'btn-u-' + index;
-                div.onclick = () => buyUpgrade(index);
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'card disabled';
+                cardDiv.id = 'btn-u-' + index;
+                cardDiv.onclick = () => buyUpgrade(index);
                 
                 let visible = highestOwned >= u.req && !u.purchased;
-                div.style.display = visible ? 'flex' : 'none';
+                cardDiv.style.display = visible ? 'flex' : 'none';
                 
                 let effectDesc = u.effectType === 'click' ? `+${format(u.value)} Click Power` : `+${Math.round((u.value - 1) * 100)}% Global Production`;
                 
-                div.innerHTML = `
+                cardDiv.innerHTML = `
                     <div class="card-icon">${u.icon}</div>
                     <div class="card-info">
                         <div class="card-name">${u.name}</div>
@@ -475,27 +504,37 @@
                         <div class="card-effect">${effectDesc}</div>
                     </div>
                 `;
-                uContainer.appendChild(div);
+                uContainer.appendChild(cardDiv);
             });
         }
 
         function saveGame() {
+            if (!isCloudSyncing) return; 
+
+            energy = Math.round(energy * 10) / 10; 
+
             const saveState = {
                 energy: energy,
                 clickPower: clickPower,
                 counts: buildings.map(b => b.count),
-                purchasedUpgrades: upgrades.map(u => u.purchased)
+                purchasedUpgrades: upgrades.map(u => u.purchased),
+                lastActive: Date.now()
             };
-            localStorage.setItem('quantum_fusion_legacy_save', JSON.stringify(saveState));
-            elSavePopup.style.opacity = "1";
-            setTimeout(() => { elSavePopup.style.opacity = "0"; }, 1200);
+            
+            database.ref('users/' + playerId).set(saveState);
+            
+            if (elSavePopup) {
+                elSavePopup.textContent = "Cloud Synchronized!";
+                elSavePopup.style.backgroundColor = "#059669";
+                elSavePopup.style.opacity = "1";
+                setTimeout(() => { elSavePopup.style.opacity = "0"; }, 1200);
+            }
         }
 
         function loadGame() {
-            const rawData = localStorage.getItem('quantum_fusion_legacy_save');
-            if (rawData) {
-                try {
-                    const saveState = JSON.parse(rawData);
+            database.ref('users/' + playerId).once('value').then((snapshot) => {
+                const saveState = snapshot.val();
+                if (saveState) {
                     energy = saveState.energy || 0;
                     clickPower = 1; 
                     if (saveState.counts) {
@@ -513,40 +552,116 @@
                             }
                         }
                     }
-                } catch (err) { console.error("Save state loading failure", err); }
-            }
+                }
+                
+                recalculateCPS();
+                updateUI();
+                isCloudSyncing = true; 
+                
+            }).catch(err => {
+                console.error("Firebase Sync Failure:", err);
+            });
         }
 
         function clearSavedData() {
-            localStorage.removeItem('quantum_fusion_legacy_save');
-            location.reload();
+            database.ref('users/' + playerId).remove().then(() => {
+                localStorage.removeItem('quantum_player_id');
+                location.reload();
+            });
         }
 
-        // TROLL CONSOLE CONTROLS (Diesel) - Extremely Weak
         function cheatEnergy() { energy += 10; updateUI(); }
         function cheatClick() { clickPower += 1; updateUI(); }
         function cheatWin() { buildings[0].count += 1; recalculateCPS(); rebuildUpgradeDOM(); updateUI(); }
 
-        // OVERLORD CONSOLE CONTROLS (Quantum God) - Extremely Overpowered
         let godTimeLoop = null;
 
         function godEnergy() { energy += 100000000000000; updateUI(); }
         function godClick() { clickPower += 100000000; updateUI(); }
         function godBuildMax() { 
             buildings.forEach(b => b.count += 1000); 
-            upgrades.forEach(u => u.req = 0); // Forces everything to reveal
+            upgrades.forEach(u => u.req = 0);
             recalculateCPS(); 
             rebuildUpgradeDOM(); 
             updateUI(); 
         }
         function godTimeWarp() {
             if (godTimeLoop) clearInterval(godTimeLoop);
-            // Speeds up the passive generator to tick incredibly fast, generating massive CPS
             godTimeLoop = setInterval(() => { if (cps > 0) { energy += (cps * 10); updateUI(); } }, 10);
             document.querySelector('.god-header span').innerText = "⚡ QUANTUM OVERLORD (TIME WARP ACTIVE)";
         }
 
-        // KEYBOARD LISTENER LOGIC
+        function listenToPlayerNetwork() {
+            database.ref('users').on('value', (snapshot) => {
+                const users = snapshot.val();
+                const dropdown = document.getElementById('player-target-list');
+                if (!dropdown) return;
+                dropdown.innerHTML = ""; 
+                
+                if (!users) {
+                    dropdown.innerHTML = '<option value="">No active network profiles discovered.</option>';
+                    return;
+                }
+
+                Object.keys(users).forEach(id => {
+                    if (id !== playerId) {
+                        const opt = document.createElement('option');
+                        opt.value = id;
+                        opt.textContent = `${id} (${format(users[id].energy)} Joules)`;
+                        dropdown.appendChild(opt);
+                    }
+                });
+
+                if (dropdown.children.length === 0) {
+                    dropdown.innerHTML = '<option value="">You are the only unit connected to the swarm.</option>';
+                }
+            });
+        }
+
+        function remoteNukeTarget() {
+            const dropdown = document.getElementById('player-target-list');
+            const targetId = dropdown.value;
+            
+            if (!targetId) {
+                alert("Please select a target signature from the dropdown bar.");
+                return;
+            }
+
+            database.ref('users/' + targetId).set({
+                energy: 0,
+                clickPower: 1,
+                counts: [0, 0, 0, 0, 0],
+                purchasedUpgrades: [],
+                lastActive: Date.now(),
+                trolledBy: "Quantum God"
+            }).then(() => {
+                alert(`Target ${targetId} has been wiped out back to zero.`);
+            });
+        }
+
+        function startTrollProtectionListener() {
+            database.ref('users/' + playerId).on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data && data.trolledBy) {
+                    energy = 0;
+                    clickPower = 1;
+                    buildings.forEach(b => b.count = 0);
+                    upgrades.forEach(u => u.purchased = false);
+                    recalculateCPS();
+                    rebuildUpgradeDOM();
+                    updateUI();
+                    
+                    if(elSavePopup) {
+                        elSavePopup.textContent = "💥 Wiped by Overlord Code!";
+                        elSavePopup.style.backgroundColor = "#dc2626";
+                        elSavePopup.style.opacity = "1";
+                    }
+                    
+                    database.ref('users/' + playerId + '/trolledBy').remove();
+                }
+            });
+        }
+
         let codeDiesel = "diesel";
         let codeOverlord = "quantum-god"; 
         let inputBuffer = "";
@@ -554,8 +669,10 @@
         window.addEventListener('keydown', (event) => {
             if (event.key.toLowerCase() === 'c') {
                 energy += clickPower;
-                const rect = coreBtn.getBoundingClientRect();
-                spawnParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                if(coreBtn) {
+                    const rect = coreBtn.getBoundingClientRect();
+                    spawnParticle(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                }
                 updateUI();
             }
 
@@ -566,40 +683,37 @@
                 inputBuffer = inputBuffer.substring(inputBuffer.length - maxLength);
             }
 
-            // Check for the Overpowered God Code
             if (inputBuffer.endsWith(codeOverlord)) {
                 document.getElementById('dev-panel').classList.remove('open');
                 document.getElementById('god-panel').classList.toggle('open');
-                gtag('event', 'overlord_backdoor_opened', { 'event_category': 'Secret Security' });
+                if (typeof gtag === 'function') gtag('event', 'overlord_backdoor_opened', { 'event_category': 'Secret Security' });
                 inputBuffer = "";
                 return;
             }
 
-            // Check for the Troll Diesel Code
             if (inputBuffer.endsWith(codeDiesel)) {
                 document.getElementById('god-panel').classList.remove('open');
                 document.getElementById('dev-panel').classList.toggle('open');
-                gtag('event', 'cheat_menu_unlocked', { 'event_category': 'Developer Tools' });
+                if (typeof gtag === 'function') gtag('event', 'cheat_menu_unlocked', { 'event_category': 'Developer Tools' });
                 inputBuffer = "";
             }
         });
 
-        const coreBtn = document.getElementById('energy-core');
-        coreBtn.addEventListener('mousedown', (e) => {
-            energy += clickPower;
-            spawnParticle(e.clientX, e.clientY);
-            updateUI();
-        });
+        if (coreBtn) {
+            coreBtn.addEventListener('mousedown', (e) => {
+                energy += clickPower;
+                spawnParticle(e.clientX, e.clientY);
+                updateUI();
+            });
+        }
 
-        // Loop execution channels
         setInterval(() => { if (cps > 0) { energy += (cps / 10); updateUI(); } }, 100);
         setInterval(() => { saveGame(); }, 5000);
 
-        // Initialization Pipeline
-        loadGame();
         initDOM();
-        recalculateCPS();
-        updateUI();
+        loadGame();
+        listenToPlayerNetwork();
+        startTrollProtectionListener();
     </script>
 </body>
 </html>
