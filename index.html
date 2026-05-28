@@ -183,7 +183,7 @@
             100% { transform: translateY(-100px) scale(1.5); opacity: 0; }
         }
 
-        /* Standard Troll Panel Layout */
+        /* NERFED VIEW */
         #dev-panel {
             position: fixed;
             bottom: -300px;
@@ -191,7 +191,7 @@
             width: 100%;
             height: 200px;
             background-color: #020617;
-            border-top: 4px solid #ef4444;
+            border-top: 4px solid #64748b;
             z-index: 100;
             transition: bottom 0.3s ease-in-out;
             padding: 1.5rem;
@@ -223,12 +223,12 @@
         #god-panel.open { bottom: 0; }
         
         .god-header { color: #c084fc; font-weight: 900; font-size: 1.3rem; text-shadow: 0 0 10px #a855f7; display: flex; justify-content: space-between; align-items: center; }
-        .dev-header { color: #ef4444; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
+        .dev-header { color: #94a3b8; font-weight: bold; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center; }
         
         .dev-grid, .god-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
         
-        .cheat-btn { background-color: #991b1b; color: white; border: 1px solid #f87171; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
-        .cheat-btn:hover { background-color: #b91c1c; }
+        .cheat-btn { background-color: #334155; color: #94a3b8; border: 1px solid #475569; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: bold; }
+        .cheat-btn:hover { background-color: #475569; }
         
         .god-btn { background: linear-gradient(135deg, #6b21a8 0%, #4c1d95 100%); color: #f3e8ff; border: 1px solid #c084fc; padding: 1rem; border-radius: 0.5rem; cursor: pointer; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
         .god-btn:hover { background: linear-gradient(135deg, #7e22ce 0%, #5b21b6 100%); box-shadow: 0 0 15px #a855f7; transform: scale(1.02); }
@@ -302,6 +302,15 @@
 </head>
 <body>
 
+    <div id="login-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.98); z-index: 1000; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="background: #1e293b; padding: 2.5rem; border-radius: 1rem; border: 2px solid #38bdf8; text-align: center; box-shadow: 0 0 40px rgba(56,189,248,0.2);">
+            <h2 style="color: #bae6fd; margin-top: 0; font-size: 1.8rem;">System Initialization</h2>
+            <p style="color: #94a3b8; margin-bottom: 1.5rem; font-size: 1.1rem;">Register your Commander designation to access the grid.</p>
+            <input type="text" id="player-name-input" placeholder="Enter Name..." style="padding: 1rem; width: 80%; border-radius: 0.5rem; border: 1px solid #475569; background: #0f172a; color: white; font-size: 1.2rem; margin-bottom: 1.5rem; text-align: center; outline: none;">
+            <button onclick="registerPlayer()" style="background: #38bdf8; color: #0f172a; border: none; padding: 1rem 2rem; font-weight: 900; border-radius: 0.5rem; cursor: pointer; font-size: 1.2rem; width: 100%; text-transform: uppercase;">Initialize Link</button>
+        </div>
+    </div>
+
     <div id="save-popup">Cloud Synchronized!</div>
 
     <div id="offline-popup">
@@ -330,7 +339,6 @@
         <div class="pane" id="pane-upgrades"></div>
     </div>
 
-    <!-- NERFED DIESEL PANEL HTML -->
     <div id="dev-panel">
         <div class="dev-header">
             <span>ℹ️ DEGRADED CONSOLE ACTIVATED (Code: Diesel)</span>
@@ -368,11 +376,13 @@
         let clickPower = 1;
         let isCloudSyncing = false; 
 
+        // Set up ID and grab Name if it exists
         let playerId = localStorage.getItem('quantum_player_id');
         if (!playerId) {
             playerId = "User_" + Math.floor(1000 + Math.random() * 9000);
             localStorage.setItem('quantum_player_id', playerId);
         }
+        let playerName = localStorage.getItem('quantum_player_name') || "";
 
         const coreBtn = document.getElementById('energy-core');
         let elEnergyCount, elEpsCount, elUpgradesAvailCount, elSavePopup;
@@ -407,6 +417,25 @@
             { id: 19, name: "Cosmic String Harmonic", icon: "🎻", cost: 75000000000, effectType: "click", value: 125000, req: 50, purchased: false },
             { id: 20, name: "Infinite Mirror Matrix", icon: "🪞", cost: 420000000000, effectType: "cps", value: 1.40, req: 60, purchased: false }
         ];
+
+        // LOGIN FUNCTIONS
+        function checkLogin() {
+            if (!playerName) {
+                document.getElementById('login-overlay').style.display = 'flex';
+            }
+        }
+
+        function registerPlayer() {
+            const input = document.getElementById('player-name-input').value.trim();
+            if (input.length > 0) {
+                playerName = input;
+                localStorage.setItem('quantum_player_name', playerName);
+                document.getElementById('login-overlay').style.display = 'none';
+                saveGame(); // Force a save to instantly broadcast their name to the database
+            } else {
+                alert("A valid designation is required.");
+            }
+        }
 
         function format(num) { return Math.floor(num).toLocaleString(); }
         function getBuildCost(b) { return Math.ceil(b.baseCost * Math.pow(1.15, b.count)); }
@@ -564,11 +593,12 @@
         }
 
         function saveGame() {
-            if (!isCloudSyncing) return; 
+            if (!isCloudSyncing || !playerName) return; 
 
             energy = Math.round(energy * 10) / 10; 
 
             const saveState = {
+                playerName: playerName,
                 energy: energy,
                 clickPower: clickPower,
                 counts: buildings.map(b => b.count),
@@ -586,7 +616,6 @@
             }
         }
 
-        // --- UPDATED LOAD GAME WITH OFFLINE PROGRESSION ---
         function loadGame() {
             database.ref('users/' + playerId).once('value').then((snapshot) => {
                 const saveState = snapshot.val();
@@ -609,15 +638,12 @@
                         }
                     }
 
-                    // Recalculate CPS first so we have the correct multiplier for offline gains
                     recalculateCPS();
 
-                    // --- OFFLINE PROGRESSION LOGIC ---
                     if (saveState.lastActive && cps > 0) {
                         const now = Date.now();
                         const secondsOffline = (now - saveState.lastActive) / 1000;
 
-                        // Only trigger if they were offline for more than 1 minute (60 seconds)
                         if (secondsOffline > 60) {
                             const offlineGains = secondsOffline * cps;
                             energy += offlineGains;
@@ -640,6 +666,7 @@
         function clearSavedData() {
             database.ref('users/' + playerId).remove().then(() => {
                 localStorage.removeItem('quantum_player_id');
+                localStorage.removeItem('quantum_player_name');
                 location.reload();
             });
         }
@@ -648,7 +675,8 @@
         function cheatEnergy() { energy += 0.001; updateUI(); } 
         function cheatClick() { clickPower += 0.0001; updateUI(); } 
         function cheatWin() { console.log("Diagnostics Complete. No changes made."); updateUI(); }
-        
+
+        // --- UNTOUCHED QUANTUM-GOD CHEATS ---
         let godTimeLoop = null;
 
         function godEnergy() { energy += 100000000000000; updateUI(); }
@@ -680,9 +708,10 @@
 
                 Object.keys(users).forEach(id => {
                     if (id !== playerId) {
+                        const displayName = users[id].playerName ? users[id].playerName : id;
                         const opt = document.createElement('option');
                         opt.value = id;
-                        opt.textContent = `${id} (${format(users[id].energy)} Joules)`;
+                        opt.textContent = `${displayName} - ${format(users[id].energy)} J`;
                         dropdown.appendChild(opt);
                     }
                 });
@@ -737,8 +766,7 @@
             });
         }
 
-        // --- UPDATED DEVELOPER CODES ---
-        let codeDiesel = "diesel";
+        let codeDiesel = "diesel-cat-484716-e8";
         let codeOverlord = "quantum-god"; 
         let inputBuffer = "";
 
@@ -790,6 +818,7 @@
         loadGame();
         listenToPlayerNetwork();
         startTrollProtectionListener();
+        checkLogin();
     </script>
 </body>
 </html>
